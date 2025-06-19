@@ -33,13 +33,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+     <Tabs.Screen
+  name="analysis"  // <-- lowercase to match the folder/file
+  options={{
+    title: 'Analysis', // Display title, can be capitalized for UI
+    tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
+  }}
+/>
     </Tabs>
   );
 }

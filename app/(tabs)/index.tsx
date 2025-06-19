@@ -1,75 +1,376 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  SafeAreaView,
+  ActivityIndicator,
+  ScrollView,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const { width, height } = Dimensions.get('window');
 
-export default function HomeScreen() {
+const SensorDisplay = () => {
+  const [sensorData, setSensorData] = useState<{
+    temperature: number;
+    smoke: number;
+    flame_detected: boolean;
+    humidity: number;
+    fire_alert: boolean;
+  } | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [showFireAlert, setShowFireAlert] = useState(false);
+
+  const fetchData = () => {
+    fetch('http://firewatch-backend-2cri.onrender.com/data')
+      .then((response) => response.json())
+      .then((data) => {
+        const updatedData = {
+          temperature: data.temperature || 0,
+          smoke: data.smoke || 0,
+          flame_detected: data.flame_detected || false,
+          fire_alert: data.fire_alert || false,
+          humidity: data.humidity || 45,
+        };
+        setSensorData(updatedData);
+        setShowFireAlert(updatedData.fire_alert);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching sensor data:', error);
+        setSensorData({
+          temperature: 0,
+          smoke: 0,
+          flame_detected: false,
+          humidity: 45,
+          fire_alert: false,
+        });
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchData();
+    const intervalId = setInterval(fetchData, 5000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const getTemperatureColor = (temp: number) => {
+    if (temp < 15) return '#4A90E2';
+    if (temp < 25) return '#50C878';
+    if (temp < 35) return '#FFA500';
+    return '#FF6B6B';
+  };
+
+  const getSmokeColor = (smoke: number) => {
+    if (smoke < 10) return '#50C878';
+    if (smoke < 30) return '#FFA500';
+    return '#FF6B6B';
+  };
+
+  const getHumidityColor = (humidity: number) => {
+    if (humidity < 30) return '#FF6B6B';
+    if (humidity < 40) return '#FFA500';
+    if (humidity < 60) return '#50C878';
+    if (humidity < 70) return '#FFA500';
+    return '#FF6B6B';
+  };
+
+  const getFlameColor = (hasFlame: boolean) => {
+    return hasFlame ? '#FF4444' : '#50C878';
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4A90E2" />
+          <Text style={styles.loadingText}>Loading sensor data...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const temperature = sensorData?.temperature ?? 0;
+  const smoke = sensorData?.smoke ?? 0;
+  const flame = sensorData?.flame_detected ?? false;
+  const humidity = sensorData?.humidity ?? 45;
+  const fireAlert = sensorData?.fire_alert ?? false;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>FireWatch</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.cardsContainer}>
+          {/* Temperature Card */}
+          <View style={[styles.card, styles.temperatureCard]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>🌡️</Text>
+              <Text style={styles.cardTitle}>Temperature</Text>
+            </View>
+            <Text style={[styles.mainValue, { color: getTemperatureColor(temperature) }]}>
+              {temperature}°C
+            </Text>
+            <Text style={styles.cardSubtext}>
+              {temperature < 15 ? 'Cold' :
+               temperature < 25 ? 'Normal' :
+               temperature < 35 ? 'Warm' : 'Hot'}
+            </Text>
+          </View>
+
+          {/* Humidity Card */}
+          <View style={[styles.card, styles.humidityCard]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>💧</Text>
+              <Text style={styles.cardTitle}>Humidity</Text>
+            </View>
+            <Text style={[styles.mainValue, { color: getHumidityColor(humidity) }]}>
+              {humidity}%
+            </Text>
+            <Text style={styles.cardSubtext}>
+              {humidity < 30 ? 'Too Dry' :
+               humidity < 40 ? 'Low' :
+               humidity < 60 ? 'Optimal' :
+               humidity < 70 ? 'High' : 'Too Humid'}
+            </Text>
+          </View>
+
+          {/* Smoke Card */}
+          <View style={[styles.card, styles.smokeCard]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>💨</Text>
+              <Text style={styles.cardTitle}>Smoke Level</Text>
+            </View>
+            <Text style={[styles.mainValue, { color: getSmokeColor(smoke) }]}>
+              {smoke} ppm
+            </Text>
+            <Text style={styles.cardSubtext}>
+              {smoke < 1200 ? 'Safe' :
+               smoke < 1800 ? 'Moderate' : 'Dangerous'}
+            </Text>
+          </View>
+
+          {/* Flame Card */}
+          <View style={[styles.card, styles.flameCard]}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>🔥</Text>
+              <Text style={styles.cardTitle}>Flame Detection</Text>
+            </View>
+            <Text style={[styles.mainValue, { color: getFlameColor(flame) }]}>
+              {flame ? 'DETECTED' : 'SAFE'}
+            </Text>
+            <Text style={styles.cardSubtext}>
+              {flame ? 'Fire detected!' : 'No flame detected'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Status Summary */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>System Status</Text>
+          <View style={styles.statusIndicator}>
+            <View style={[
+              styles.statusDot,
+              { backgroundColor: (fireAlert || flame || smoke > 30) ? '#FF6B6B' : '#50C878' }
+            ]} />
+            <Text style={styles.statusText}>
+              {(fireAlert || flame || smoke > 2000 || temperature>40) ? 'Alert: Check sensors' : 'All systems normal'}
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Fire Alert Modal */}
+      <Modal visible={showFireAlert} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.alertModal}>
+            <View style={styles.alertHeader}>
+              <Text style={styles.alertIcon}>🚨</Text>
+              <Text style={styles.alertTitle}>FIRE ALERT!</Text>
+            </View>
+            <Text style={styles.alertMessage}>
+              Emergency fire condition detected!{'\n'}
+              Please evacuate immediately and contact emergency services.
+            </Text>
+            <View style={styles.alertDetails}>
+              <Text style={styles.alertDetailText}>• Temperature: {temperature}°C</Text>
+              <Text style={styles.alertDetailText}>• Smoke Level: {smoke} ppm</Text>
+              <Text style={styles.alertDetailText}>• Flame: {flame ? 'DETECTED' : 'Not detected'}</Text>
+            </View>
+            <TouchableOpacity style={styles.alertButton} onPress={() => setShowFireAlert(false)}>
+              <Text style={styles.alertButtonText}>ACKNOWLEDGE</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#7F8C8D',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  header: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2C3E50',
+  },
+  cardsContainer: {
+    gap: 20,
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderLeftWidth: 4,
+  },
+  temperatureCard: { borderLeftColor: '#4A90E2' },
+  humidityCard: { borderLeftColor: '#3498DB' },
+  smokeCard: { borderLeftColor: '#9B59B6' },
+  flameCard: { borderLeftColor: '#E67E22' },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 16,
   },
-  stepContainer: {
-    gap: 8,
+  cardIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  mainValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardSubtext: {
+    fontSize: 14,
+    color: '#7F8C8D',
+    textAlign: 'center',
+  },
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#2C3E50',
+  },
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginRight: 10,
+  },
+  statusText: {
+    fontSize: 16,
+    color: '#34495E',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertModal: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    width: width * 0.85,
+    alignItems: 'center',
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertIcon: {
+    fontSize: 30,
+    marginRight: 10,
+  },
+  alertTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#E74C3C',
+  },
+  alertMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#2C3E50',
+    marginBottom: 16,
+  },
+  alertDetails: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  alertDetailText: {
+    fontSize: 15,
+    color: '#555',
+    marginBottom: 4,
+  },
+  alertButton: {
+    backgroundColor: '#E74C3C',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+  },
+  alertButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
+
+
+export default SensorDisplay;
