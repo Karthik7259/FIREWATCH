@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  SafeAreaView,
   ActivityIndicator,
-  ScrollView,
+  Dimensions,
   Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -24,6 +24,8 @@ const SensorDisplay = () => {
 
   const [loading, setLoading] = useState(true);
   const [showFireAlert, setShowFireAlert] = useState(false);
+  const [buzzerStatus, setBuzzerStatus] = useState(false);
+  const [ledStatus, setLedStatus] = useState(false);
 
   const fetchData = () => {
     fetch('http://firewatch-backend-2cri.onrender.com/data')
@@ -82,6 +84,37 @@ const SensorDisplay = () => {
 
   const getFlameColor = (hasFlame: boolean) => {
     return hasFlame ? '#FF4444' : '#50C878';
+  };
+
+  // Control functions for buzzer and LED
+  const handleBuzzerControl = async (turnOn: boolean) => {
+    try {
+      const response = await fetch('http://192.168.1.101/buzzer/off', {
+        method: 'GET',
+      });
+      
+      if (response.ok) {
+        setBuzzerStatus(false);
+        console.log('Buzzer turned OFF');
+      }
+    } catch (error) {
+      console.error('Error controlling buzzer:', error);
+    }
+  };
+
+  const handleLEDControl = async (turnOn: boolean) => {
+    try {
+      const response = await fetch('http://192.168.1.101/led/off', {
+        method: 'GET',
+      });
+      
+      if (response.ok) {
+        setLedStatus(false);
+        console.log('LED turned OFF');
+      }
+    } catch (error) {
+      console.error('Error controlling LED:', error);
+    }
   };
 
   if (loading) {
@@ -183,6 +216,39 @@ const SensorDisplay = () => {
             <Text style={styles.statusText}>
               {(fireAlert || flame || smoke > 2000 || temperature>40) ? 'Alert: Check sensors' : 'All systems normal'}
             </Text>
+          </View>
+        </View>
+
+        {/* Control Panel */}
+        <View style={styles.controlPanel}>
+          <Text style={styles.controlPanelTitle}>Device Controls</Text>
+          
+          {/* Buzzer Control */}
+          <View style={styles.controlCard}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.controlIcon}>🔊</Text>
+              <Text style={styles.controlTitle}>Buzzer Control</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.controlButton, styles.buttonOff]}
+              onPress={() => handleBuzzerControl(false)}
+            >
+              <Text style={styles.buttonText}>Turn OFF</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* LED Control */}
+          <View style={styles.controlCard}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.controlIcon}>💡</Text>
+              <Text style={styles.controlTitle}>LED Control</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.controlButton, styles.buttonOff]}
+              onPress={() => handleLEDControl(false)}
+            >
+              <Text style={styles.buttonText}>Turn OFF</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -369,6 +435,67 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Control Panel Styles
+  controlPanel: {
+    marginTop: 20,
+  },
+  controlPanelTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  controlCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3498DB',
+  },
+  controlHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  controlIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  controlTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+  },
+  controlButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 12,
+  },
+  controlButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buttonOn: {
+    backgroundColor: '#27AE60',
+  },
+  buttonOff: {
+    backgroundColor: '#E74C3C',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

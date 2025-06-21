@@ -560,11 +560,18 @@
 
 
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Dimensions, ScrollView, Text, TouchableOpacity } from 'react-native';
-import { LineChart, BarChart } from 'react-native-chart-kit';
+import { Dimensions, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BarChart, LineChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const screenWidth = Dimensions.get('window').width;
+
+interface SensorData {
+  timestamp: number;
+  temperature: number;
+  humidity: number;
+  smoke: number;
+}
 
 const chartConfig = {
   backgroundGradientFrom: '#fff',
@@ -575,13 +582,13 @@ const chartConfig = {
   fillShadowGradient: '#FF6B35',
   fillShadowGradientOpacity: 0.2,
   strokeWidth: 2,
-  barPercentage: 0.6,
+  barPercentage: 0.5,
   useShadowColorFromDataset: false,
   style: {
     borderRadius: 16,
   },
   propsForDots: {
-    r: '5',
+    r: '6',
     strokeWidth: '2',
     stroke: '#FF6B35',
     fill: '#fff',
@@ -590,24 +597,31 @@ const chartConfig = {
     strokeWidth: 0.5,
     strokeDasharray: [5, 5],
   },
+  propsForVerticalLabels: {
+    fontSize: 10,
+  },
+  propsForHorizontalLabels: {
+    fontSize: 10,
+  },
 };
 
 export default function ExploreScreen() {
   const [chartsLoaded, setChartsLoaded] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState('all');
   const [showHumidity, setShowHumidity] = useState(false);
-  const [sensorData, setSensorData] = useState([]);
+  const [sensorData, setSensorData] = useState<SensorData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0, visible: false, value: '', label: '' });
 
   // Fetch data from MongoDB
   const fetchData = async () => {
     try {
-      const response = await fetch('http://192.168.84.167:8080/recent/6'); // Fetch last 20 records
+      const response = await fetch('http://192.168.1.102:8080/recent/4'); // Fetch last 20 records
       const json = await response.json();
       if (json.status === 'success') {
         // Transform data to match our expected format
-        const transformedData = json.data.map(item => ({
+        const transformedData = json.data.map((item: any) => ({
           timestamp: item.timestamp,
           temperature: item.temperature,
           humidity: item.humidity,
@@ -618,7 +632,7 @@ export default function ExploreScreen() {
         setError('Failed to fetch data');
       }
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
       setChartsLoaded(true);
@@ -680,23 +694,49 @@ export default function ExploreScreen() {
     }
 
     return (
-      <LineChart
-        data={data}
-        width={screenWidth - 32}
-        height={250}
-        chartConfig={{
-          ...chartConfig,
-          fillShadowGradient: '#FF6B35',
-          fillShadowGradientOpacity: 0.1,
-        }}
-        bezier
-        style={styles.chartStyle}
-        withHorizontalLabels={true}
-        withVerticalLabels={true}
-        segments={5}
-        withInnerLines={true}
-        withOuterLines={true}
-      />
+      <View>
+        <LineChart
+          data={data}
+          width={screenWidth - 64}
+          height={220}
+          chartConfig={{
+            ...chartConfig,
+            fillShadowGradient: '#FF6B35',
+            fillShadowGradientOpacity: 0.1,
+          }}
+          bezier
+          style={styles.chartStyle}
+          withHorizontalLabels={true}
+          withVerticalLabels={true}
+          segments={4}
+          withInnerLines={true}
+          withOuterLines={true}
+          onDataPointClick={(data) => {
+            const index = data.index;
+            const value = `${filteredData[index].temperature}°C`;
+            const label = 'Temperature';
+            
+            setTooltipPos({
+              x: data.x,
+              y: data.y - 40,
+              visible: true,
+              value: value,
+              label: label
+            });
+            
+            // Hide tooltip after 3 seconds
+            setTimeout(() => {
+              setTooltipPos(prev => ({ ...prev, visible: false }));
+            }, 3000);
+          }}
+        />
+        {tooltipPos.visible && (
+          <View style={[styles.tooltip, { left: tooltipPos.x - 40, top: tooltipPos.y }]}>
+            <Text style={styles.tooltipText}>{tooltipPos.label}</Text>
+            <Text style={styles.tooltipValue}>{tooltipPos.value}</Text>
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -718,8 +758,8 @@ export default function ExploreScreen() {
     return (
       <BarChart
         data={data}
-        width={screenWidth - 32}
-        height={250}
+        width={screenWidth - 64}
+        height={220}
         chartConfig={{
           ...chartConfig,
           color: (opacity = 1, index) => {
@@ -735,12 +775,13 @@ export default function ExploreScreen() {
           },
         }}
         style={styles.chartStyle}
-        fromZero
-        showBarTops={false}
+        fromZero={false}
+        showBarTops={true}
         withHorizontalLabels={true}
         withVerticalLabels={true}
         yAxisLabel=""
-        yAxisSuffix="ppm"
+        yAxisSuffix=" ppm"
+        segments={4}
       />
     );
   };
@@ -784,25 +825,33 @@ export default function ExploreScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading data...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
+        <View style={styles.loadingContainer}>
+          <Text>Loading data...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <TouchableOpacity onPress={fetchData} style={styles.retryButton}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity onPress={fetchData} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
+      <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Environment Dashboard</Text>
         <Text style={styles.headerSubtitle}>Real-time sensor data visualization</Text>
@@ -863,17 +912,23 @@ export default function ExploreScreen() {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+  },
   container: {
-    padding: 16,
+    padding: 12,
     backgroundColor: '#f8f8f8',
     paddingBottom: 32,
   },
   headerContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -889,12 +944,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   timeRangeButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
     backgroundColor: '#eee',
+    minWidth: 50,
+    alignItems: 'center',
   },
   selectedTimeRangeButton: {
     backgroundColor: '#FF6B35',
@@ -902,20 +960,23 @@ const styles = StyleSheet.create({
   timeRangeButtonText: {
     color: '#666',
     fontWeight: '600',
+    fontSize: 12,
   },
   selectedTimeRangeButtonText: {
     color: '#fff',
   },
   chartContainer: {
     marginVertical: 8,
+    marginHorizontal: 4,
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
+    overflow: 'hidden',
   },
   chartHeader: {
     flexDirection: 'row',
@@ -933,7 +994,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chartTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
   },
@@ -944,11 +1005,12 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     marginLeft: 4,
     color: '#FF6B35',
-    fontSize: 14,
+    fontSize: 12,
   },
   chartStyle: {
     borderRadius: 16,
     marginTop: 10,
+    alignSelf: 'center',
   },
   chartFooter: {
     marginTop: 8,
@@ -957,59 +1019,95 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
   },
   chartFooterText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
     textAlign: 'center',
   },
   smokeLegend: {
     flexDirection: 'row',
     marginTop: 8,
+    flexWrap: 'wrap',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
+    marginBottom: 4,
   },
   legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     marginRight: 4,
   },
   legendText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingTop: 50,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#f8f8f8',
+    paddingTop: 50,
   },
   errorText: {
     color: 'red',
     marginBottom: 20,
+    textAlign: 'center',
   },
   retryButton: {
     backgroundColor: '#FF6B35',
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
   },
   retryButtonText: {
     color: 'white',
+    fontWeight: '600',
   },
   noDataContainer: {
-    height: 250,
+    height: 220,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
   },
   noDataText: {
     color: '#666',
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: '#333',
+    padding: 8,
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  tooltipText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  tooltipValue: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 2,
   },
 });
