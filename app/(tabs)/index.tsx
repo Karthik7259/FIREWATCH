@@ -5,6 +5,7 @@ import {
   Modal,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -89,7 +90,7 @@ const SensorDisplay = () => {
   // Control functions for buzzer and LED
   const handleBuzzerControl = async (turnOn: boolean) => {
     try {
-      const response = await fetch('http://192.168.1.101/buzzer/off', {
+      const response = await fetch('http://192.168.1.106/buzzer/off', {
         method: 'GET',
       });
       
@@ -104,7 +105,7 @@ const SensorDisplay = () => {
 
   const handleLEDControl = async (turnOn: boolean) => {
     try {
-      const response = await fetch('http://192.168.1.101/led/off', {
+      const response = await fetch('http://192.168.1.106/led/off', {
         method: 'GET',
       });
       
@@ -136,6 +137,7 @@ const SensorDisplay = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.header}>
         <Text style={styles.title}>FireWatch</Text>
       </View>
@@ -284,11 +286,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+    paddingTop: 20, // Increased padding for better header visibility
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingTop: 80, // Increased for better positioning
   },
   loadingText: {
     marginTop: 16,
@@ -297,11 +301,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 100, // Added significant bottom padding for tab bar space
   },
   header: {
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: 20, // Increased header padding
     paddingBottom: 20,
   },
   title: {

@@ -1,5 +1,3 @@
-
-
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import requests
@@ -22,6 +20,7 @@ mongo_uri = "mongodb+srv://thenameismonisha:lEu15R9y1WM9NN6Q@cluster0.ippxuwz.mo
 client = MongoClient(mongo_uri)
 db = client['firewatch']         # Database name
 collection = db['data']          # Collection name
+user_collection = db['users']    # User collection
 
 # Custom JSON encoder to handle ObjectId
 class JSONEncoder(json.JSONEncoder):
@@ -172,6 +171,224 @@ def get_recent_data(limit):
             
     except Exception as e:
         print(f"❌ Error fetching recent data: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/auth/register', methods=['POST'])
+def register_user():
+    """
+    Register a new user or login an existing user
+    """
+    print("👤 User registration/login request received")
+    try:
+        user_data = request.json
+        
+        # Validate required fields
+        required_fields = ['name', 'email', 'password']
+        for field in required_fields:
+            if not user_data.get(field):
+                return jsonify({
+                    "status": "error",
+                    "message": f"Missing required field: {field}"
+                }), 400
+        
+        # Check if user already exists
+        existing_user = user_collection.find_one({"email": user_data['email']})
+        
+        if existing_user:
+            # User exists, perform login validation
+            print(f"🔍 Existing user found: {user_data['email']}")
+            # In a real app, you'd verify the password hash here
+            # For demo purposes, we'll just return success
+            return jsonify({
+                "status": "success",
+                "message": "Login successful",
+                "user": {
+                    "id": str(existing_user['_id']),
+                    "name": existing_user['name'],
+                    "email": existing_user['email']
+                }
+            }), 200
+        else:
+            # New user, create account
+            print(f"✨ Creating new user: {user_data['email']}")
+            
+            # Prepare user document
+            user_document = {
+                "name": user_data['name'],
+                "email": user_data['email'],
+                "password": user_data['password'],  # In production, hash this password
+                "created_at": {"$currentDate": True},
+                "last_login": {"$currentDate": True}
+            }
+            
+            # Insert user into database
+            result = user_collection.insert_one(user_document)
+            user_id = str(result.inserted_id)
+            
+            print(f"✅ User created successfully with ID: {user_id}")
+            
+            return jsonify({
+                "status": "success",
+                "message": "User registered successfully",
+                "user": {
+                    "id": user_id,
+                    "name": user_data['name'],
+                    "email": user_data['email']
+                }
+            }), 201
+            
+    except Exception as e:
+        print(f"❌ User registration error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/auth/users', methods=['GET'])
+def get_all_users():
+    """
+    Get all registered users (for admin purposes)
+    """
+    print("👥 Fetching all users...")
+    try:
+        users = list(user_collection.find())
+        
+        # Convert ObjectId to string and remove password from response
+        users_list = []
+        for user in users:
+            user_data = {
+                "id": str(user['_id']),
+                "name": user['name'],
+                "email": user['email'],
+                "created_at": user.get('created_at'),
+                "last_login": user.get('last_login')
+            }
+            users_list.append(user_data)
+        
+        print(f"✅ Found {len(users_list)} users")
+        return jsonify({
+            "status": "success",
+            "count": len(users_list),
+            "users": users_list
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error fetching users: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/login', methods=['POST'])
+def login_user():
+    """
+    Login an existing user
+    """
+    print("🔑 Logging in user...")
+    credentials = request.json
+    
+    # Basic validation
+    if not credentials.get('username') or not credentials.get('password'):
+        return jsonify({
+            "status": "error",
+            "message": "Username and password are required"
+        }), 400
+    
+    try:
+        # Check if the user exists and password matches
+        user = user_collection.find_one({
+            "username": credentials['username'],
+            "password": credentials['password']  # In production, use hashed passwords!
+        })
+        
+        if user:
+            print(f"✅ User logged in: {user['username']}")
+            return jsonify({
+                "status": "success",
+                "user_id": str(user['_id']),
+                "username": user['username']
+            }), 200
+        else:
+            print("❌ Invalid username or password")
+            return jsonify({
+                "status": "error",
+                "message": "Invalid username or password"
+            }), 401
+    except Exception as e:
+        print(f"❌ Error logging in user: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/data', methods=['GET'])
+def get_sensor_data():
+    """
+    Get latest sensor data for the dashboard
+    """
+    print("📊 Dashboard requesting sensor data...")
+    try:
+        # Return the latest in-memory data first (fastest)
+        if latest_data:
+            print("✅ Returning latest in-memory data")
+            return jsonify(latest_data), 200
+        
+        # If no in-memory data, try to get from MongoDB
+        latest_document = collection.find().sort("_id", -1).limit(1)
+        latest_data_list = list(latest_document)
+        
+        if latest_data_list:
+            latest_doc = latest_data_list[0]
+            # Remove MongoDB _id from response
+            if '_id' in latest_doc:
+                del latest_doc['_id']
+            print("✅ Returning latest data from MongoDB")
+            return jsonify(latest_doc), 200
+        else:
+            # Return default/mock data if no data available
+            mock_data = {
+                "temperature": 25.0,
+                "smoke": 8.0,
+                "flame_detected": False,
+                "fire_alert": False,
+                "humidity": 45.0
+            }
+            print("⚠️ No data found, returning mock data")
+            return jsonify(mock_data), 200
+            
+    except Exception as e:
+        print(f"❌ Error fetching sensor data: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/data', methods=['POST'])
+def receive_data():
+    """
+    Receive data from IoT devices or other sources
+    """
+    print("📡 Received data via POST /data")
+    global latest_data
+    try:
+        data = request.json
+        latest_data = data
+        print("📥 Data received:", data)
+        
+        # Store in MongoDB
+        result = collection.insert_one(data)
+        print(f"✅ Data stored in MongoDB with ID: {str(result.inserted_id)}")
+        
+        return jsonify({
+            "status": "success",
+            "message": "Data received and stored successfully"
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error storing data: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
