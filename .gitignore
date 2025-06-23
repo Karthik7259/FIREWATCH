@@ -36,4 +36,11 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+
 app-example
