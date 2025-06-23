@@ -26,7 +26,7 @@ const LoginScreen = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   // API endpoint - change this to your local backend URL if running locally
-  const API_BASE_URL = 'http://192.168.109.252:8080';
+  const API_BASE_URL = 'http://192.168.1.101:8080';
   // For production, use: const API_BASE_URL = 'http://firewatch-backend-2cri.onrender.com';
 
   const handleInputChange = (field: string, value: string) => {

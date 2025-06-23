@@ -16,7 +16,7 @@ CORS(app)
 
 
 # MongoDB connection URI
-mongo_uri = "mongodb+srv://thenameismonisha:lEu15R9y1WM9NN6Q@cluster0.ippxuwz.mongodb.net/?retryWrites=true&w=majority"
+mongo_uri = ""
 client = MongoClient(mongo_uri)
 db = client['firewatch']         # Database name
 collection = db['data']          # Collection name
