@@ -25,11 +25,14 @@
   
   ### Watch FireWatch in Action!
   
-  *Click the image below to watch our demo video*
+  *Our comprehensive IoT fire detection system demonstration*
   
-  [![FireWatch Demo](https://img.shields.io/badge/▶️-Watch%20Demo-red?style=for-the-badge&logo=youtube)](images/FIREWATCH%20FINAL%20-%20Made%20with%20Clipchamp.mp4)
+  https://github.com/user-attachments/assets/firewatch-demo-video.mp4
   
-  > **Note**: Download and play the video file: `images/FIREWATCH FINAL - Made with Clipchamp.mp4`
+  [![FireWatch Demo](https://img.shields.io/badge/▶️-Download%20Demo%20Video-red?style=for-the-badge&logo=youtube)](images/FIREWATCH%20FINAL%20-%20Made%20with%20Clipchamp.mp4)
+  
+  > **📁 Video File**: `images/FIREWATCH FINAL - Made with Clipchamp.mp4`  
+  > **🎬 Features**: Complete system walkthrough, mobile app demo, and hardware setup
   
 </div>
 
