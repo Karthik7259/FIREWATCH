@@ -25,10 +25,14 @@
   
   ### Watch FireWatch in Action!
   
-  *Coming Soon: Comprehensive IoT fire detection system demonstration*
+  <video width="80%" controls>
+    <source src="images/firewatch-demo.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
   
-  > **📋 Demo Features**: Complete system walkthrough, mobile app demo, and hardware setup  
-  > **� How to Add**: Upload your demo video to a platform like YouTube or Vimeo and embed the link here
+  *Comprehensive IoT fire detection system demonstration showing real-time monitoring, alerts, and mobile app interface*
+  
+  > **📋 Demo Features**: Complete system walkthrough, mobile app demo, hardware setup, and real-time fire detection alerts
   
 </div>
 
