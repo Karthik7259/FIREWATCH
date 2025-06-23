@@ -56,7 +56,7 @@ export default function ExploreScreen() {
   // Fetch data from MongoDB
   const fetchData = async () => {
     try {
-      const response = await fetch('http://192.168.1.104:8080/recent/4'); // Fetch last 20 records
+      const response = await fetch('http://192.168.109.252:8080/recent/4'); // Fetch last 20 records
       const json = await response.json();
       if (json.status === 'success') {
         // Transform data to match our expected format

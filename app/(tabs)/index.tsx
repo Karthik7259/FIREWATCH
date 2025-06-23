@@ -90,7 +90,7 @@ const SensorDisplay = () => {
   // Control functions for buzzer and LED
   const handleBuzzerControl = async (turnOn: boolean) => {
     try {
-      const response = await fetch('http://192.168.1.106/buzzer/off', {
+      const response = await fetch('http://192.168.109.184/buzzer/off', {
         method: 'GET',
       });
       
@@ -105,7 +105,7 @@ const SensorDisplay = () => {
 
   const handleLEDControl = async (turnOn: boolean) => {
     try {
-      const response = await fetch('http://192.168.1.106/led/off', {
+      const response = await fetch('http://192.168.109.184/led/off', {
         method: 'GET',
       });
       
