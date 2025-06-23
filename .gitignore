@@ -36,11 +36,14 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# Large media files
+# Large media files (exclude demo video)
 *.mp4
 *.mov
 *.avi
 *.mkv
 *.wmv
+
+# Allow specific demo video
+!images/firewatch-demo.mp4
 
 app-example
