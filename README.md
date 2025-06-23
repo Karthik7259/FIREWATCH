@@ -27,11 +27,15 @@
   
   *Our comprehensive IoT fire detection system demonstration*
   
-  https://github.com/user-attachments/assets/firewatch-demo-video.mp4
+  <!-- Replace this URL with your actual GitHub video URL when uploaded -->
+  <video width="600" controls>
+    <source src="images/FIREWATCH-DEMO.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
   
-  [![FireWatch Demo](https://img.shields.io/badge/▶️-Download%20Demo%20Video-red?style=for-the-badge&logo=youtube)](images/FIREWATCH%20FINAL%20-%20Made%20with%20Clipchamp.mp4)
+ 
   
-  > **📁 Video File**: `images/FIREWATCH FINAL - Made with Clipchamp.mp4`  
+  > **📁 Video File**: `images/FIREWATCH-DEMO.mp4`  
   > **🎬 Features**: Complete system walkthrough, mobile app demo, and hardware setup
   
 </div>
